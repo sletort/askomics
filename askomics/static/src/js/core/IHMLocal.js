@@ -454,6 +454,11 @@ class IHMLocal {
             service.post(model, function() {
             });
           });
+
+        // EXTERNAL ENDPOINT
+        $('#add_endpoint_ext').off().click(function() {
+            __ihm.get_add_endpoint_ext_form();
+        });
       });
     }
 
@@ -482,6 +487,42 @@ class IHMLocal {
 
           if (model.name == "" || model.url == "http://") {
             alert('Bad definition of AskOmics endpoint :'+ JSON.stringify(model));
+            return ;
+          }
+
+          service.post(model, function(data) {
+            __ihm.loadEndpoints();
+          });
+          $(this).unbind( "click" );
+        }).text('Add');
+
+    }
+
+    get_add_endpoint_ext_form() {
+        // sletort: copy paste of get_add_endpoints_form, with little adaptations.
+        $('#modalTitle').text('Add external endpoint');
+        $('.modal-sm').css('width', '55%');
+        $('.modal-body').show();
+
+        $('#modal').modal('show');
+        $('#modal').addClass('upload-modal');
+
+        let template = AskOmics.templates.add_endpoint_ext;
+        let html = template();
+
+        $('#modalMessage').html(html);
+
+        $('#modalButton').click(function()
+        {
+          let service = new RestServiceJs('add_endpoint_ext');
+          let model = {
+            name: $('#endpoint-name').val(),
+            url:$('#endpoint-url').val(),
+            auth: $('#endpoint-auth').val()
+          };
+
+          if (model.name == "" || model.url == "http://") {
+            alert('Bad definition of external endpoint :'+ JSON.stringify(model));
             return ;
           }
 

@@ -18,8 +18,9 @@
         <tr id="{{this.id}}">
             <td>
               {{#if ../admin}}
-                <input class="check_ep check_endpoint" name="{{this.id}}" type="checkbox"></td>
+                <input class="check_ep check_endpoint" name="{{this.id}}" type="checkbox">
               {{/if}}
+            </td>
             <td>{{this.name}}</td>
             <td>{{this.endpoint}}</td>
             <td>{{this.auth}}</td>
@@ -77,3 +78,12 @@
         {{/each}}
     </tbody>
 </table>
+
+{{#if admin}}
+<div class="btn-group" role="group">
+  <button id="delete_endpoints_ext" type="button" class="btn btn-default" disabled><i class="fa fa-trash text-danger"></i> Delete</button>
+  <button id="add_endpoint_ext" type="button" class="btn-uploaded btn btn-default"><i class="fa fa-database text-primary"></i> Add</button>
+</div>
+<i class="hidden fa fa-spinner pulse" id='spinner_delete'></i>
+{{/if}}
+
