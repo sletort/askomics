@@ -299,6 +299,54 @@ class AskView(object):
             ql.process_query(sqb.get_delete_metadatas_of_graph(graph).query,parseResults=False)
 
 
+    @view_config(route_name='delete_endpoints_ext', request_method='POST')
+    def delete_endpoints_ext(self):
+        # sletort: it's the exact copy of delete_endpoints
+        import pyramid.httpexceptions as exc
+        """
+
+        """
+        self.data = {}
+
+        self.checkAuthSession()
+
+        if 'id_endpoints' not in self.request.json_body:
+            self.data['error'] = 'Devel : id_endpoints value is not defined !'
+            self.request.response.status = 400
+            return self.data
+
+        endpoints = self.request.json_body['id_endpoints']
+
+        em = EndpointManager(self.settings, self.request.session)
+
+        for url in endpoints:
+            em.remove(url)
+        ##raise ValueError("ok")
+
+    @view_config(route_name='add_endpoint_ext', request_method='POST')
+    def add_endpoint_ext(self):
+        # sletort: again it's the copy of add_endpoint
+        import pyramid.httpexceptions as exc
+        """
+
+        """
+
+        self.checkAuthSession()
+
+        if 'name' not in self.request.json_body:
+            raise exc.exception_response(404)
+        if 'url' not in self.request.json_body:
+            raise exc.exception_response(404)
+        if 'auth' not in self.request.json_body:
+            raise exc.exception_response(404)
+
+        name = self.request.json_body['name']
+        url  = self.request.json_body['url']
+        auth = self.request.json_body['auth']
+
+        em = EndpointManager(self.settings, self.request.session)
+        em.saveEndpoint(name,url,auth,True)
+
     @view_config(route_name='delete_endpoints', request_method='POST')
     def delete_endpoints(self):
         import pyramid.httpexceptions as exc

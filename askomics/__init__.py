@@ -32,6 +32,8 @@ def main(global_config, **settings):
     config.add_route('list_endpoints', '/list_endpoints')
     config.add_route('delete_endpoints', '/delete_endpoints')
     config.add_route('add_endpoint', '/add_endpoint')
+    config.add_route('delete_endpoints_ext', '/delete_endpoints_ext')
+    config.add_route('add_endpoint_ext', '/add_endpoint_ext')
     config.add_route('enable_endpoints', '/enable_endpoints')
     config.add_route('getUserAbstraction', '/userAbstraction')
     config.add_route('sparqlquery', '/sparqlquery')
