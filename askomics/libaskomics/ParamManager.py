@@ -103,25 +103,51 @@ class ParamManager(object):
     def is_defined(self, key):
         return key in self.settings.keys()
 
-    def update_list_prefix(self,listPrefix):
-        self.log.debug("update_list_prefix")
-        listPrefix = list(set(listPrefix))
+    def __update_askomics_prefixes(self,l_prefixes):
+        """removes duplicates,
+            if the prefix is public, add it to ASKOMICS_prefix
+            else log it."""
+        self.log.debug("update_prefixes")
+        l_prefixes = list(set(l_prefixes)) # remove duplicates
 
-        lPrefix = {}
         url = "http://prefix.cc/"
         ext = ".file.json"
 
-        for item in listPrefix:
-            if not (item in self.ASKOMICS_prefix):
-                response = requests.get(url+item+ext)
+        for prefix in l_prefixes:
+            if not prefix in self.ASKOMICS_prefix:
+                # check that prefix correspond to public ontology
+                prefix_url = url + prefix + ext
+                response = requests.get(prefix_url)
                 if response.status_code != 200:
-                    self.log.error("request:"+str(url+item+ext))
+                    self.log.error("request:"+str(prefix_url))
                     self.log.error("status_code:"+str(response.status_code))
                     self.log.error(response)
                     continue
                 dic = json.loads(response.text)
-                self.ASKOMICS_prefix[item]=dic[item]
-                self.log.info("add prefix:"+str(item)+":"+self.ASKOMICS_prefix[item])
+                self.ASKOMICS_prefix[prefix]=dic[prefix]
+                msg = "add prefix:" + str(prefix) + ":" + self.ASKOMICS_prefix[prefix]
+                self.log.info(msg)
+    # __update_askomics_prefixes
+
+    def get_turtle_prefixes(self,ttl):
+        """Parse the ttl string, looking for prefix.
+            add them to ASKOMICS_prefix if they exist.
+            Then return the prefixes as ttl header."""
+
+        #add new prefix if needed
+        if ttl == None:
+            raise ValueError("Turtle is empty.")
+
+        regex = re.compile('\s(\w+):')
+        l_prefixes = regex.findall(ttl)
+        self.__update_askomics_prefixes(l_prefixes)
+
+        header = ["@prefix {0}: <{1}> .".format(k,v) for k,v in self.ASKOMICS_prefix.items() ]
+
+        asko_prefix = self.get_param("askomics.prefix")
+        header.append("@base <{0}> .".format(asko_prefix))
+        header.append("<{0}> rdf:type owl:Ontology .".format(asko_prefix))
+        return '\n'.join(header)
 
     def reverse_prefix(self,uri):
         url = "http://prefix.cc/reverse?format=json&uri="
@@ -148,11 +174,28 @@ class ParamManager(object):
 
         return uri
 
-    def header_sparql_config(self,sparqlrequest):
+    def get_sparql_prefixes(self,sparqlrequest):
+        # SLETORT: should be almost identical to get_turtle_prefixes,
+        # SLETORT:   and also elsewhere (but this one is used by more classes)
+        # SLETORT: why returning all askomics prefixes ? we only need those from the request.
         header = ""
         regex = re.compile('\s(\w+):')
         listTermPref = regex.findall(sparqlrequest)
-        self.update_list_prefix(listTermPref)
+        self.__update_askomics_prefixes(listTermPref)
+
+        for key, value in self.ASKOMICS_prefix.items():
+            header += "PREFIX "+key+": <"+value+">\n"
+
+        return header
+
+    def header_sparql_config(self,sparqlrequest):
+        # SLETORT: should be almost identical to get_turtle_prefixes,
+        # SLETORT:   and also elsewhere (but this one is used by more classes)
+        self.log.warn( "deprecated, use get_sparql_prefixes" )
+        header = ""
+        regex = re.compile('\s(\w+):')
+        listTermPref = regex.findall(sparqlrequest)
+        self.__update_askomics_prefixes(listTermPref)
 
         for key, value in self.ASKOMICS_prefix.items():
             header += "PREFIX "+key+": <"+value+">\n"
@@ -167,23 +210,6 @@ class ParamManager(object):
             obj = obj.replace(value, new)
 
         return obj
-
-    def get_turtle_template(self,ttl):
-
-        #add new prefix if needed
-        if ttl == None:
-            raise ValueError("Turtle is empty.")
-
-        regex = re.compile('\s(\w+):')
-        listTermPref = regex.findall(ttl)
-        self.update_list_prefix(listTermPref)
-
-        header = ["@prefix {0}: <{1}> .".format(k,v) for k,v in self.ASKOMICS_prefix.items() ]
-
-        asko_prefix = self.get_param("askomics.prefix")
-        header.append("@base <{0}> .".format(asko_prefix))
-        header.append("<{0}> rdf:type owl:Ontology .".format(asko_prefix))
-        return '\n'.join(header)
 
     @staticmethod
     def encode(toencode):
