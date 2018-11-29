@@ -3,6 +3,8 @@
 
 import os,sys,traceback
 import re,shutil
+from collections import defaultdict
+from json.decoder import JSONDecodeError
 
 from pyramid.view import view_config, view_defaults
 from pyramid.response import FileResponse
@@ -33,6 +35,7 @@ from askomics.libaskomics.rdfdb.QueryLauncher import QueryLauncher
 from askomics.libaskomics.rdfdb.MultipleQueryLauncher import MultipleQueryLauncher
 from askomics.libaskomics.rdfdb.FederationQueryLauncher import FederationQueryLauncher
 
+from askomics.libaskomics.source_file.ExternalEndpoint import ExternalEndpoint
 from askomics.libaskomics.source_file.SourceFile import SourceFile
 from askomics.libaskomics.source_file.SourceFileURL import SourceFileURL
 
@@ -320,29 +323,79 @@ class AskView(object):
             em.remove(url)
         ##raise ValueError("ok")
 
+    @view_config(route_name='inspect_endpoint_ext', request_method='POST', renderer='json')
+    def inspect_endpoint_ext(self):
+        fh = logging.FileHandler('/root/inspect.log')
+        fh.setLevel(logging.DEBUG)
+        self.log.addHandler(fh)
+
+        self.checkAuthSession()
+
+        try:
+            self.log.debug( "inspect_endpoint_ext\n" + str(self.request.json_body) )
+        except JSONDecodeError:
+            return {}
+
+        name = self.request.json_body['name']
+        uri  = self.request.json_body['url']
+        em = ExternalEndpoint(self.settings, self.request.session, {name:uri} )
+
+        # return a list of dict { 'ont':x, 'owl':x, 'count':x }
+        #   it is the number of owl class per ontology
+        ld_counts = em.inspect()
+
+        # usually 1 ont will have 3 owl+count, I group them
+        d_ontologies = defaultdict(dict)
+        for d_count in ld_counts:
+            ont,owl,cnt = [ d_count[k] for k in ('ont','owl','count')]
+            owl = owl.replace("http://www.w3.org/2002/07/owl#","") #remove owl prefix.
+            d_ontologies[ont][owl] = cnt
+
+        d_endpoint = { name:
+                {
+                    'uri':uri,
+                    'onto': d_ontologies
+                }
+            }
+        return d_endpoint
+
     @view_config(route_name='add_endpoint_ext', request_method='POST')
     def add_endpoint_ext(self):
         # sletort: again it's the copy of add_endpoint
         import pyramid.httpexceptions as exc
         """
 
+            SLETORT: Here i combine what I saw in add_endpoint and load_data_into_graph
+                for SourceFile.
         """
 
         self.checkAuthSession()
+        self.log.debug( "add_xEP" )
 
-        if 'name' not in self.request.json_body:
-            raise exc.exception_response(404)
-        if 'url' not in self.request.json_body:
-            raise exc.exception_response(404)
-        if 'auth' not in self.request.json_body:
-            raise exc.exception_response(404)
+        #~ if 'name' not in self.request.json_body:
+            #~ raise exc.exception_response(404)
+        #~ if 'url' not in self.request.json_body:
+            #~ raise exc.exception_response(404)
+        #~ self.log.debug( "pas de 404" )
 
-        name = self.request.json_body['name']
-        url  = self.request.json_body['url']
-        auth = self.request.json_body['auth']
+        #~ name = self.request.json_body['name']
+        #~ url  = self.request.json_body['url']
+        #~ self.log.debug( "var ok" )
 
-        em = EndpointManager(self.settings, self.request.session)
-        em.saveEndpoint(name,url,auth,True)
+        #~ em = EndpointManager(self.settings, self.request.session)
+        #~ em.save_endpoint(name,url,auth,True)
+        #~ self.log.debug( "em ok" )
+
+        #~ id_ = self.request.json_body['id']
+        #~ em.enable(id_)
+        #~ self.log.debug( "id = {}".format( id_ ) )
+
+        #~ jm = JobManager(self.settings, self.request.session)
+        #~ jobid = jm.save_integration_job(file_name)
+        #~ self.log.debug( "job_id = {}".format( jobid ) )
+
+        #~ o_ep = ExternalEndpoint(self.settings, self.request.session, d_ep)
+        #~ self.log.debug( "obj xEP ok" )
 
     @view_config(route_name='delete_endpoints', request_method='POST')
     def delete_endpoints(self):

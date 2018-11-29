@@ -1,0 +1,16 @@
+{{!#each this}} {{!SLETORT: I cannot make this loop works, the 'this' is crashed by next loop. (tried to get name & uri }}
+	{{#each onto}}
+	<tr>
+		<td>{{ ../ep_name }}</td>
+		<td>{{ ../ep_uri }}</td>
+
+		<td>{{ @key }}</td>
+		<td>{{ this.Class }}</td>
+		<td>{{this.ObjectProperty}}</td>
+		<td>{{this.DatatypeProperty}}</td>
+		<td><input type="checkbox" /></td>
+		<td><input type="text" /></td>
+		<td><button>show</button></td>
+	</tr>
+	{{/each}}
+{{!/each}}
