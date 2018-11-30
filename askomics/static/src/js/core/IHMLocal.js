@@ -512,9 +512,9 @@ class IHMLocal {
         let html = AskOmics.templates.add_endpoint_ext();
         $('#modalMessage').html(html);
 
-        //~ //SLETORT: debug values
-        //~ $('#epx_name').val("Uniprot");
-        //~ $('#epx_uri').val("https://sparql.uniprot.org/sparql");
+        //SLETORT: debug values
+        $('#epx_name').val("dbpedia");
+        $('#epx_uri').val("https://dbpedia.org/sparql");
 
         // rewrite web standard
         $('#epx-form-submit-btn').click(function()
@@ -533,26 +533,48 @@ class IHMLocal {
             // run the ask_view.inspect_endpoint_ext method
             //  input  = model
             //  output = data -> function is called on output result.
-            service.post(model, function(data) {
-                __ihm.preload_external_endpoint_form(data);
+            service.post(model, function(d_onto_summaries) {
+              // load ontologies
+              let html_rows = AskOmics.templates.get_external_endpoint_row(d_onto_summaries);
+              $('#epx-rows').append(html_rows);
             });
         });
-    }
 
-    preload_external_endpoint_form( d_onto_summaries )
-    {
-        // too painfull to make it works !
-        //~ let html_rows = AskOmics.templates.get_external_endpoint_row(d_onto_summaries);
-        for ( let ep_name in d_onto_summaries )
+        // SLETORT: why not a form ?
+        $('#modalButton').click(function()
         {
-            let d_context = {
-                    'ep_name': ep_name,
-                    'ep_uri' : d_onto_summaries[ep_name].uri,
-                    'onto'   : d_onto_summaries[ep_name].onto
-                };
-            let html_rows = AskOmics.templates.get_external_endpoint_row(d_context);
-            $('#epx-rows').append(html_rows);
-        }
+          let d_endpoints  = {};
+          $('#epx-rows tr').each(function(i){
+
+              let l_td = $(this).children();
+              if( l_td[6].firstChild.checked )
+              {
+                epx_name  = l_td[0].innerText;
+                let d_onto = {
+                    'name'  : l_td[2].innerText,
+                    'prefix': l_td[7].firstChild.value,
+                  };
+                if( undefined == d_endpoints[epx_name] )
+                {
+                  d_endpoints[epx_name] = {
+                      'uri': l_td[1].innerText,
+                      'onto': [ d_onto ]
+                    };
+                }
+                else
+                {
+                  d_endpoints[epx_name].onto.append( d_onto );
+                }
+              }
+          });
+          //~ console.log( JSON.stringify(d_endpoints) );
+
+          let service = new RestServiceJs('integrate_endpoint_ext');
+          service.post(d_endpoints, function(data) {
+            alert( "Et maintenant ?" );
+          });
+          //~ $(this).unbind( "click" );
+        }).text('Integrate');
     }
 
     graphname(graphn) {
@@ -1289,11 +1311,11 @@ class IHMLocal {
       });
 
       // signup
-//~ //SLETORT nez marre
-//~ $('#signup_username').val('admin');
-//~ $('#signup_email').val('ad@min');
-//~ $('#signup_password').val('admin');
-//~ $('#signup_password2').val('admin');
+//SLETORT nez marre
+$('#signup_username').val('admin');
+$('#signup_email').val('ad@min');
+$('#signup_password').val('admin');
+$('#signup_password2').val('admin');
       $('#signup_button').off().on('click', function(e){
         let username = $('#signup_username').val();
         let email = $('#signup_email').val();
@@ -1329,9 +1351,9 @@ class IHMLocal {
       });
 
       // login
-//~ // SLETORT: nez marre      
-//~ $('#login_username-email').val('admin');
-//~ $('#login_password').val('admin');
+// SLETORT: nez marre      
+$('#login_username-email').val('admin');
+$('#login_password').val('admin');
       $('#login_button').off().on('click', function(e){
         let username_email = $('#login_username-email').val();
         let password = $('#login_password').val();
