@@ -52,9 +52,6 @@ class TripleStoreInputManager(ParamManager):
         self.__graph_uri    = None
         self.__set_graph_uri()
 
-        fh = logging.FileHandler('/root/tim.log')
-        self.log.addHandler(fh)
-
     @property
     def _o_prefixes(self):
         return self.__o_prefixes
