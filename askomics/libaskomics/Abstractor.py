@@ -14,8 +14,8 @@ class Abstractor(ParamManager):
         ParamManager.__init__(self, settings, session)
         self.log = logging.getLogger(__name__)
 
-    def asbtraction(self):
-        """return the abstraction as ttl string
+    def abstraction(self):
+        """return the abstraction as ttl string without header prefixes
         
         previous vision of the future of askomics planed to separate "abtraction"
         that describes entities, close to the data
