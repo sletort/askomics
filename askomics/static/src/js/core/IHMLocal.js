@@ -513,10 +513,6 @@ class IHMLocal {
         let html = AskOmics.templates.add_endpoint_ext();
         $('#modalMessage').html(html);
 
-        //SLETORT: debug values
-        $('#epx_name').val("dbpedia");
-        $('#epx_uri').val("https://dbpedia.org/sparql");
-
         // rewrite web standard
         $('#epx-form-submit-btn').click(function()
         {
