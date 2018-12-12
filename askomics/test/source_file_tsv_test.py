@@ -58,7 +58,3 @@ class SourceFileTsvTests(unittest.TestCase):
         assert SourceFileTsv.get_strand_faldo("+") == "faldo:ForwardStrandPosition"
         assert SourceFileTsv.get_strand_faldo("-") == "faldo:ReverseStrandPosition"
 
-
-# ===========================
-if __name__ == '__main__':
-    unittest.main()
