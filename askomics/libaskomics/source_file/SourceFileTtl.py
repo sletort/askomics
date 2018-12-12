@@ -5,7 +5,7 @@
 Classes to import data from a RDF source files
 """
 
-import os
+import os,sys,traceback
 import shutil
 import textwrap
 from pygments import highlight
@@ -14,6 +14,9 @@ from pygments.formatters import HtmlFormatter
 
 from askomics.libaskomics.source_file.SourceFile import SourceFile
 from askomics.libaskomics.rdfdb.QueryLauncher import QueryLauncher
+from askomics.libaskomics.rdfdb.SparqlQueryBuilder import SparqlQueryBuilder
+from askomics.libaskomics.JobManager import JobManager
+from askomics.libaskomics.TripleStoreInputManager import *
 
 class SourceFileTtl(SourceFile):
     """
@@ -27,11 +30,11 @@ class SourceFileTtl(SourceFile):
         if not file_type == 'ttl':
             newfile = self.convert_to_ttl(path,file_type)
 
-        SourceFile.__init__(self, settings, session, newfile)
+        super().__init__(settings, session, newfile)
 
         self.type = 'ttl'
         self.origine_type = file_type
-        #overload name
+        #overload name in case of convert_to_ttl
         self.name =  os.path.basename(path)
 
     def get_preview_ttl(self):
@@ -58,25 +61,51 @@ class SourceFileTtl(SourceFile):
         insert the ttl sourcefile in the TS
 
         """
-        pathttl = self.get_rdf_user_directory()
+        # SLETORT: This is big copy-paste of mother class, with difference
+        #   It could certainly be rationalized, but for the moment
+        #   I only want it to work and pass the test.
+        pathttl  = self.get_rdf_user_directory()
         shutil.copy(self.path, pathttl)
-        data = None
+        filepath = pathttl + '/' + os.path.basename(self.path)
 
-        method = 'load'
-        if self.get_param("askomics.upload_user_data_method"):
-            method = self.get_param("askomics.upload_user_data_method")
+        jm    = JobManager(self.settings, self.session)
+        jobid = jm.save_integration_job(self.name)
+        o_tim = TripleStoreInputManager.create_tim( self.settings, self.session, public, self.name, urlbase )
 
-        if method == 'load':
-            fil_open = open(pathttl + '/' + os.path.basename(self.path))
-            data = self.load_data_from_file(fil_open, urlbase)
+        d_data = {
+                'expected_lines_number':self.get_number_of_lines(),
+            }
+        try:
+            self.timestamp = o_tim.timestamp
+            self.log.debug("Inserting ttl data")
 
-        else:
-            chunk = self.file_get_contents(pathttl + '/' + os.path.basename(self.path))
-            query_lauch = QueryLauncher(self.settings, self.session)
-            data = query_lauch.insert_data(chunk, self.graph, '')
+            total_triple_count = o_tim.store_ttl_file(filepath)
+            o_tim.insert_metadata(self.name)
 
-        self.insert_metadatas(public)
-        return data
+            jm.done_integration_job(jobid)
+            d_data['status'] = 'ok'
+            d_data['total_triple_count'] = total_triple_count
+
+        except Exception as e:
+            # rollback
+            # SLETORT: Some method test if graph is not None
+            #   I think it can never be None, the good test should be
+            #       if the_graph_is_in_the_triple_store
+            #   Here I do not test like in former load_data_into_graph
+            sqb   = SparqlQueryBuilder(self.settings, self.session)
+            graph = o_tim.graph_uri
+            o_ql  = QueryLauncher(self.settings, self.session)
+            o_ql.process_query(sqb.get_drop_named_graph(graph))
+            o_ql.process_query(sqb.get_delete_metadatas_of_graph(graph))
+
+            traceback.print_exc(file=sys.stdout)
+            if jobid != -1:
+                jm.set_error_message('integration', str(e), jobid)
+
+            self.log.error(str(e))
+            d_data['status'] = 'ko'
+
+        return d_data
 
     @staticmethod
     def load_data_from_url(self, url,public):
@@ -99,16 +128,9 @@ class SourceFileTtl(SourceFile):
 
         data["status"] = "ok"
 
-        self.insert_metadatas(public)
+        #~ self.insert_metadatas(public)
 
         return data
-
-    def file_get_contents(self, filename):
-        """
-        get the content of a file
-        """
-        with open(filename) as f:
-            return f.read()#.splitlines()
 
     def convert_to_ttl(self,filepath,file_type):
         from rdflib import Graph

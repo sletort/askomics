@@ -61,6 +61,7 @@ class IHMLocal {
       //TODO: Manage all view in a array with a generic way
       this.shortcutsView           = new  ShortcutsParametersView()           ;
       this.serverInfosView         = new  ServerInformationsView()            ;
+      this.jobsview = new AskomicsJobsViewManager();
 
       this.menus = {} ;
       this.menus.menuFile = new AskomicsMenu("menuFile","buttonViewFile","viewMenuFile",fileFuncMenu,false);
@@ -410,7 +411,6 @@ class IHMLocal {
           $('#content_endpoints').append(html);
 
           // hide delete button if no checkbox checked
-
           $(".check_ep").change(function(){
               if ($('.check_endpoint:checked').length !== 0) {
                  $('#delete_endpoints').removeAttr('disabled');
@@ -463,7 +463,7 @@ class IHMLocal {
             __ihm.get_add_endpoint_ext_form();
         });
       });
-    }
+    } //loadEndpoints
 
     get_add_endpoints_form() {
 
@@ -502,39 +502,79 @@ class IHMLocal {
     }
 
     get_add_endpoint_ext_form() {
+        // sletort: I don't like that, too obstrusive !
         // sletort: copy paste of get_add_endpoints_form, with little adaptations.
-        $('#modalTitle').text('Add external endpoint');
+        $('#modalTitle').text('Add external endpoints');
         $('.modal-sm').css('width', '55%');
         $('.modal-body').show();
 
         $('#modal').modal('show');
-        $('#modal').addClass('upload-modal');
 
-        let template = AskOmics.templates.add_endpoint_ext;
-        let html = template();
-
+        let html = AskOmics.templates.add_endpoint_ext();
         $('#modalMessage').html(html);
 
+        //SLETORT: debug values
+        $('#epx_name').val("dbpedia");
+        $('#epx_uri').val("https://dbpedia.org/sparql");
+
+        // rewrite web standard
+        $('#epx-form-submit-btn').click(function()
+        {
+            let service = new RestServiceJs('inspect_endpoint_ext');
+            let model = {
+                    name: $('#epx_name').val(),
+                    url : $('#epx_uri').val()
+                };
+
+            if (model.name == "" || model.url == "http://") {
+                alert('Bad definition of external endpoint :'+ JSON.stringify(model));
+                return ;
+            }
+
+            // run the ask_view.inspect_endpoint_ext method
+            //  input  = model
+            //  output = data -> function is called on output result.
+            service.post(model, function(d_onto_summaries) {
+              // load ontologies
+              let html_rows = AskOmics.templates.get_external_endpoint_row(d_onto_summaries);
+              $('#epx-rows').append(html_rows);
+            });
+        });
+
+        // SLETORT: why not a form ?
         $('#modalButton').click(function()
         {
-          let service = new RestServiceJs('add_endpoint_ext');
-          let model = {
-            name: $('#endpoint-name').val(),
-            url:$('#endpoint-url').val(),
-            auth: $('#endpoint-auth').val()
-          };
+          let d_endpoints  = {};
+          $('#epx-rows tr').each(function(i){
 
-          if (model.name == "" || model.url == "http://") {
-            alert('Bad definition of external endpoint :'+ JSON.stringify(model));
-            return ;
-          }
+              let l_td = $(this).children();
+              if( l_td[6].firstChild.checked )
+              {
+                let epx_name  = l_td[0].innerText;
+                let onto_uri  = l_td[2].innerText;
+                let prefix    = l_td[7].firstChild.value;
+                let d_onto = { name: onto_uri, prefix: prefix };
+                if( undefined == d_endpoints[epx_name] )
+                {
+                  d_endpoints[epx_name] = {
+                      'uri': l_td[1].innerText,
+                      'onto': [ d_onto ]
+                    };
+                }
+                else
+                {
+                  d_endpoints[epx_name].onto.append( d_onto );
+                }
+              }
+          });
+          //~ console.log( JSON.stringify(d_endpoints) );
 
-          service.post(model, function(data) {
+          let service = new RestServiceJs('integrate_endpoint_ext');
+          service.post(d_endpoints, function(data) {
             __ihm.loadEndpoints();
           });
           $(this).unbind( "click" );
-        }).text('Add');
-
+        }).text('Integrate');
     }
 
     graphname(graphn) {
@@ -820,32 +860,32 @@ class IHMLocal {
         // Upload form
         let service = new RestServiceJs("up/");
         service.getAll(function(html) {
-        let size_file_max = __ihm.user.admin?__ihm.sizeFileMaxAdmin:__ihm.sizeFileMaxUser;
+            let size_file_max = __ihm.user.admin?__ihm.sizeFileMaxAdmin:__ihm.sizeFileMaxUser;
 
-        html.html = html.html.replace("___SIZE_UPLOAD____",(size_file_max/(1000*1000))+" Mo");
-        $(content).html(html.html);
+            html.html = html.html.replace("___SIZE_UPLOAD____",(size_file_max/(1000*1000))+" Mo");
+            $(content).html(html.html);
 
-        // Initialize the jQuery File Upload widget
-        $(content).find('#fileupload').fileupload({
-            // Uncomment the following to send cross-domain cookies:
-            //xhrFields: {withCredentials: true},
-            url: 'up/file/',
-            maxChunkSize: __ihm.chunkSize,
-            maxFileSize: size_file_max
-        });
+            // Initialize the jQuery File Upload widget
+            $(content).find('#fileupload').fileupload({
+                // Uncomment the following to send cross-domain cookies:
+                //xhrFields: {withCredentials: true},
+                url: 'up/file/',
+                maxChunkSize: __ihm.chunkSize,
+                maxFileSize: size_file_max
+            });
 
-        // Enable iframe cross-domain access via redirect option
-        $(content).find('#fileupload').fileupload(
-            'option',
-            'redirect',
-            window.location.href.replace(
-                /\/[^\/]*$/,
-                '/cors/result.html?%s'
-            )
-        ).bind('fileuploaddone', function () {__ihm.get_uploaded_files();});
+            // Enable iframe cross-domain access via redirect option
+            $(content).find('#fileupload').fileupload(
+                'option',
+                'redirect',
+                window.location.href.replace(
+                    /\/[^\/]*$/,
+                    '/cors/result.html?%s'
+                )
+            ).bind('fileuploaddone', function () {__ihm.get_uploaded_files();});
 
-      });
-    }
+          });
+    } //set_upload_form
 
     load_remote_data_onclick(public_d,urlarg) {
       let service = new RestServiceJs('load_remote_data_into_graph');
@@ -860,9 +900,9 @@ class IHMLocal {
         public: p
       };
 
-      service.post(model, function(data) {
-        new AskomicsJobsViewManager().loadjob().then(function () {
-          new AskomicsJobsViewManager().update_jobview ();
+      service.post(model, (data) => {
+        this.jobsview.loadjob().then( () => {
+          this.jobsview.update_jobview ();
         });
       });
 
@@ -1276,8 +1316,7 @@ class IHMLocal {
         let email = $('#signup_email').val();
         let password = $('#signup_password').val();
         let password2 = $('#signup_password2').val();
-        let user = new AskomicsUser();
-        user.signup(username, email, password, password2, function(user){
+        __ihm.user.signup(username, email, password, password2, function(user){
           // Error
           if (user.error) {
             $('#signup_error').empty();
@@ -1310,9 +1349,7 @@ class IHMLocal {
       $('#login_button').off().on('click', function(e){
         let username_email = $('#login_username-email').val();
         let password = $('#login_password').val();
-        let user = new AskomicsUser();
-
-        user.login(username_email, password, function(user){
+        __ihm.user.login(username_email, password, function(user){
           if(user.error) {
             $('#login_error').empty();
             for (let i = user.error.length - 1; i >= 0; i--) {
@@ -1322,7 +1359,7 @@ class IHMLocal {
             return;
           }
           AskomicsUser.cleanHtmlLogin();
-          __ihm.displayNavbar(true, user.username, user.admin, user.blocked);
+          __ihm.displayNavbar(true, __ihm.user.username, __ihm.user.admin, __ihm.user.blocked);
           // Show interrogation
           $('.nav li.active').removeClass('active');
           $('#interrogation').addClass('active');
@@ -1355,9 +1392,9 @@ class IHMLocal {
       });
 
       // reload jobs when the button is clicked
-      $("#jobsview").one('click', function(e) {
-        new AskomicsJobsViewManager().loadjob().then(function() {
-          new AskomicsJobsViewManager().update_jobview("integration");
+      $("#jobsview").one('click', (e) => {
+        this.jobsview.loadjob().then(() => {
+          this.jobsview.update_jobview("integration");
         });
       });
     }

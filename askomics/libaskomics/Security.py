@@ -286,9 +286,8 @@ class Security(ParamManager):
 
         ttl = '<' + self.settings['askomics.graph'] + ':' + self.username + \
             '> rdfg:subGraphOf <' + self.settings['askomics.graph'] + '>'
-
-        header_ttl = sqa.header_sparql_config(ttl)
-        query_laucher.insert_data(ttl, self.settings["askomics.graph"], header_ttl)
+        prefixes = sqa.o_prefixes.get_sparql_prefixes(ttl)
+        query_laucher.insert_data(ttl, self.settings["askomics.graph"], prefixes)
 
     def get_admins_emails(self):
         """

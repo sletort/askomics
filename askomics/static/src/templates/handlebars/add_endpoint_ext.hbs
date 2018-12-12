@@ -1,0 +1,42 @@
+<!-- <form id="add-epx-form" action="askomics/inspect_endpoint_ext" method="post">
+  SLETORT: I did not succeed in using action attribute-->
+<form id="add-epx-form" >
+  <fieldset>
+    <p>
+      <label for="epx_name"><abbr title="The name it will refer to.">Name</abbr></label>
+      <input type="text" id="epx_name" />
+      <label for="epx_uri">Uri</label>
+      <input type="text" id="epx_uri" value="http://" />
+      <!-- the submit button should reload the page
+            and add endpoint info in the table. -->
+      <input id="epx-form-submit-btn" type="submit" value="Check" />
+    </p>
+<!-- seems that the framework forbid the use of submit button, I have to set it in IHMLocal.js
+      <p>
+        <input type="submit" value="Check endpoint">
+      </p>
+-->
+  </fieldset>
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>EP name</th>
+      <th>EP uri</th>
+      <th>Ontology</th>
+      <th># Entities</th>
+      <th># Attributes (ObjectProp.)</th>
+      <th># Attributes (DatatypeProp.)</th>
+      <th>include ?</th>
+      <th><abbr title="prefix used in turtle files.">prefix</abbr></th>
+<!--
+      <th>preview samples</th>
+-->
+    </tr>
+  </thead>
+  <tbody id="epx-rows">
+  </tbody>
+  <tfoot>
+  </tfoot>
+</table>
