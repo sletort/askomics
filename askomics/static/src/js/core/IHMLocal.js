@@ -573,7 +573,7 @@ class IHMLocal {
           service.post(d_endpoints, function(data) {
             __ihm.loadEndpoints();
           });
-          $(this).unbind( "click" ); # if not keep memory of the number of click !?
+          $(this).unbind( "click" );
         }).text('Integrate');
     }
 
@@ -1311,11 +1311,6 @@ class IHMLocal {
       });
 
       // signup
-//SLETORT nez marre
-$('#signup_username').val('admin');
-$('#signup_email').val('ad@min');
-$('#signup_password').val('admin');
-$('#signup_password2').val('admin');
       $('#signup_button').off().on('click', function(e){
         let username = $('#signup_username').val();
         let email = $('#signup_email').val();
@@ -1351,9 +1346,6 @@ $('#signup_password2').val('admin');
       });
 
       // login
-// SLETORT: nez marre      
-$('#login_username-email').val('admin');
-$('#login_password').val('admin');
       $('#login_button').off().on('click', function(e){
         let username_email = $('#login_username-email').val();
         let password = $('#login_password').val();
