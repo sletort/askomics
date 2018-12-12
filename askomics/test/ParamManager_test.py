@@ -62,15 +62,6 @@ class ParamManagerTests(unittest.TestCase):
         d = m.get_rdf_user_directory()
         assert os.path.isdir(d)
 
-    def test_get_turtle_template(self):
-        m = ParamManager(self.settings, self.request.session)
-        try:
-            m.get_turtle_template(None)
-            assert False
-        except Exception as e:
-            assert True
-        m.get_turtle_template(":a :b :c.")
-
     def test_set_param(self):
         m = ParamManager(self.settings, self.request.session)
         m.set_param("test","test")
@@ -88,25 +79,6 @@ class ParamManagerTests(unittest.TestCase):
         m.set_param("test","testValue")
         assert m.is_defined("test")
         assert not m.is_defined("test2")
-
-    def test_update_list_prefix(self):
-        m = ParamManager(self.settings, self.request.session)
-        m.update_list_prefix(["eat","toto"]);
-
-    def test_reverse_prefix(self):
-        m = ParamManager(self.settings, self.request.session)
-        assert "xsd" == m.reverse_prefix("http://www.w3.org/2001/XMLSchema#")
-        assert "" == m.reverse_prefix("http://totototo")
-        assert "yago" == m.reverse_prefix("http://yago-knowledge.org/resource/")
-
-    def test_header_sparql_config(self):
-        m = ParamManager(self.settings, self.request.session)
-        m.header_sparql_config("SELECT ?a FROM { ?a a owl:Class. \n ?a yago:test eat:test. }")
-
-    def test_remove_prefix(self):
-        m = ParamManager(self.settings, self.request.session)
-        d = m.remove_prefix("SELECT ?a FROM { ?a a http://www.w3.org/2002/07/owl#Class. }")
-        assert d == "SELECT ?a FROM { ?a a owl:Class. }"
 
     def test_encode(self):
         r = ParamManager.encode("@&###:::123%%%%!!!")

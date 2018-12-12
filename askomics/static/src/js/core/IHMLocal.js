@@ -61,6 +61,7 @@ class IHMLocal {
       //TODO: Manage all view in a array with a generic way
       this.shortcutsView           = new  ShortcutsParametersView()           ;
       this.serverInfosView         = new  ServerInformationsView()            ;
+      this.jobsview = new AskomicsJobsViewManager();
 
       this.menus = {} ;
       this.menus.menuFile = new AskomicsMenu("menuFile","buttonViewFile","viewMenuFile",fileFuncMenu,false);
@@ -549,11 +550,10 @@ class IHMLocal {
               let l_td = $(this).children();
               if( l_td[6].firstChild.checked )
               {
-                epx_name  = l_td[0].innerText;
-                let d_onto = {
-                    'name'  : l_td[2].innerText,
-                    'prefix': l_td[7].firstChild.value,
-                  };
+                let epx_name  = l_td[0].innerText;
+                let onto_uri  = l_td[2].innerText;
+                let prefix    = l_td[7].firstChild.value;
+                let d_onto = { name: onto_uri, prefix: prefix };
                 if( undefined == d_endpoints[epx_name] )
                 {
                   d_endpoints[epx_name] = {
@@ -571,9 +571,9 @@ class IHMLocal {
 
           let service = new RestServiceJs('integrate_endpoint_ext');
           service.post(d_endpoints, function(data) {
-            alert( "Et maintenant ?" );
+            __ihm.loadEndpoints();
           });
-          //~ $(this).unbind( "click" );
+          $(this).unbind( "click" ); # if not keep memory of the number of click !?
         }).text('Integrate');
     }
 
@@ -900,9 +900,9 @@ class IHMLocal {
         public: p
       };
 
-      service.post(model, function(data) {
-        new AskomicsJobsViewManager().loadjob().then(function () {
-          new AskomicsJobsViewManager().update_jobview ();
+      service.post(model, (data) => {
+        this.jobsview.loadjob().then( () => {
+          this.jobsview.update_jobview ();
         });
       });
 
@@ -1400,9 +1400,9 @@ $('#login_password').val('admin');
       });
 
       // reload jobs when the button is clicked
-      $("#jobsview").one('click', function(e) {
-        new AskomicsJobsViewManager().loadjob().then(function() {
-          new AskomicsJobsViewManager().update_jobview("integration");
+      $("#jobsview").one('click', (e) => {
+        this.jobsview.loadjob().then(() => {
+          this.jobsview.update_jobview("integration");
         });
       });
     }

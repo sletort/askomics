@@ -24,6 +24,7 @@ from askomics.libaskomics.JobManager import JobManager
 from askomics.libaskomics.EndpointManager import EndpointManager
 
 from askomics.libaskomics.TripleStoreExplorer import TripleStoreExplorer
+from askomics.libaskomics.TripleStoreInputManager import TripleStoreInputManager
 from askomics.libaskomics.SourceFileConvertor import SourceFileConvertor
 
 from askomics.libaskomics.rdfdb.SparqlQueryBuilder import SparqlQueryBuilder
@@ -35,7 +36,7 @@ from askomics.libaskomics.rdfdb.QueryLauncher import QueryLauncher
 from askomics.libaskomics.rdfdb.MultipleQueryLauncher import MultipleQueryLauncher
 from askomics.libaskomics.rdfdb.FederationQueryLauncher import FederationQueryLauncher
 
-from askomics.libaskomics.source_file.ExternalEndpoint import ExternalEndpoint
+from askomics.libaskomics.source_file.ExternalOntology import *
 from askomics.libaskomics.source_file.SourceFile import SourceFile
 from askomics.libaskomics.source_file.SourceFileURL import SourceFileURL
 
@@ -117,6 +118,11 @@ class AskView(object):
 
             tse = TripleStoreExplorer(self.settings, self.request.session)
             nodes = tse.get_start_points()
+            #DBG
+            fh = logging.FileHandler('/root/ask_view.log')
+            self.log.addHandler(fh)
+            self.log.debug( nodes )
+            #/DBG
 
             self.data['nodes'] = {}
 
@@ -161,43 +167,43 @@ class AskView(object):
 
         lEndp = em.list_endpoints()
         # Number of triples
-        results_pub = qmlaucher.process_query(sqs.get_number_of_triples('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_number_of_triples('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_number_of_triples('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_number_of_triples('private'))
 
         public_stats['ntriples'] = results_pub[0]['number']
         private_stats['ntriples'] = results_priv[0]['number']
 
         # Number of entities
-        results_pub = qmlaucher.process_query(sqs.get_number_of_entities('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_number_of_entities('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_number_of_entities('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_number_of_entities('private'))
 
         public_stats['nentities'] = results_pub[0]['number']
         private_stats['nentities'] = results_priv[0]['number']
 
         # Number of classes
-        results_pub = qmlaucher.process_query(sqs.get_number_of_classes('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_number_of_classes('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_number_of_classes('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_number_of_classes('private'))
 
         public_stats['nclasses'] = results_pub[0]['number']
         private_stats['nclasses'] = results_priv[0]['number']
 
         # Number of graphs
-        results_pub = qmlaucher.process_query(sqs.get_number_of_subgraph('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_number_of_subgraph('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_number_of_subgraph('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_number_of_subgraph('private'))
 
         public_stats['ngraphs'] = results_pub[0]['number']
         private_stats['ngraphs'] = results_priv[0]['number']
 
         # Graphs info
-        results_pub = qmlaucher.process_query(sqs.get_subgraph_infos('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_subgraph_infos('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_subgraph_infos('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_subgraph_infos('private'))
 
         public_stats['graphs'] = results_pub
         private_stats['graphs'] = results_priv
 
         # Classes and relations
-        results_pub = qmlaucher.process_query(sqs.get_rel_of_classes('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_rel_of_classes('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_rel_of_classes('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_rel_of_classes('private'))
 
         public_stats['class_rel'] = results_pub
         private_stats['class_rel'] = results_priv
@@ -221,8 +227,8 @@ class AskView(object):
         private_stats['class_rel'] = tmp
 
         # class and attributes
-        results_pub = qmlaucher.process_query(sqs.get_attr_of_classes('public').query,lEndp)
-        results_priv = qlaucher.process_query(sqs.get_attr_of_classes('private').query)
+        results_pub = qmlaucher.process_query(sqs.get_attr_of_classes('public'),lEndp)
+        results_priv = qlaucher.process_query(sqs.get_attr_of_classes('private'))
 
         tmp = {}
 
@@ -266,9 +272,9 @@ class AskView(object):
             for graph in named_graphs:
 
                 self.log.debug("--- DELETE GRAPH : %s", graph['g'])
-                ql.process_query(sqb.get_drop_named_graph(graph['g']).query)
+                ql.process_query(sqb.get_drop_named_graph(graph['g']))
                 #delete metadatas
-                ql.process_query(sqb.get_delete_metadatas_of_graph(graph['g']).query)
+                ql.process_query(sqb.get_delete_metadatas_of_graph(graph['g']))
 
         except Exception as e:
             traceback.print_exc(file=sys.stdout)
@@ -294,9 +300,9 @@ class AskView(object):
 
         for graph in graphs:
             self.log.debug("--- DELETE GRAPH : %s", graph)
-            ql.process_query(sqb.get_drop_named_graph(graph).query,parseResults=False)
+            ql.process_query(sqb.get_drop_named_graph(graph),parseResults=False)
             #delete metadatas
-            ql.process_query(sqb.get_delete_metadatas_of_graph(graph).query,parseResults=False)
+            ql.process_query(sqb.get_delete_metadatas_of_graph(graph),parseResults=False)
 
 
     @view_config(route_name='delete_endpoints_ext', request_method='POST')
@@ -325,10 +331,6 @@ class AskView(object):
 
     @view_config(route_name='inspect_endpoint_ext', request_method='POST', renderer='json')
     def inspect_endpoint_ext(self):
-        fh = logging.FileHandler('/root/inspect.log')
-        fh.setLevel(logging.DEBUG)
-        self.log.addHandler(fh)
-
         self.checkAuthSession()
 
         try:
@@ -338,7 +340,7 @@ class AskView(object):
 
         name = self.request.json_body['name']
         uri  = self.request.json_body['url']
-        em = ExternalEndpoint(self.settings, self.request.session, {name:uri} )
+        em   = ExternalEndpoint(self.settings, self.request.session, uri)
 
         # return a list of dict { 'ont':x, 'owl':x, 'count':x }
         #   it is the number of owl class per ontology
@@ -359,18 +361,38 @@ class AskView(object):
 
     @view_config(route_name='integrate_endpoint_ext', request_method='POST')
     def integrate_endpoint_ext(self):
-        fh = logging.FileHandler('/root/integrate.log')
-        fh.setLevel(logging.DEBUG)
-        self.log.addHandler(fh)
-
+        # SLETORT: Note : For SourceFile, everything is in the method persist.
+        # SLETORT:  This upset me, the scheme should be the same.
         self.checkAuthSession()
+        d_endpoints = self.request.json_body
+        self.log.debug( d_endpoints )
 
-        self.log.debug( self.request.json_body )
-        #~ name = self.request.json_body['name']
-        #~ url = self.request.json_body['url']
+        # param used to save abstractions
+        urlbase = self.request.host_url # SLETORT: I don't know this param, is it linked to asko deployement ? (which could mean not a param !)
+        public  = True # epx are always public
+        o_tim = TripleStoreInputManager.create_tim( self.settings, self.request.session,
+                                                    public, urlbase )
 
-        #~ em = EndpointManager(self.settings, self.request.session)
-        #~ em.save_endpoint(name,url,auth,True)
+        for epx_name in d_endpoints:
+            # EPx - save in DB
+            url = d_endpoints[epx_name]['uri']
+            em  = EndpointManager(self.settings, self.request.session)
+            em.save_endpoint(epx_name,url,isenable=True)
+            o_epx = ExternalEndpoint(self.settings, self.request.session, url)
+            self.log.debug("External endpoint <{}> has been recorded".format(url))
+
+            # Ontologies - store prefix and create/save abstraction in triple store
+            ld_onto = d_endpoints[epx_name]['onto']
+            for d_onto in ld_onto:
+                uri    = d_onto['name']
+                prefix = d_onto['prefix']
+
+                # Abstractions
+                o_onto = o_epx.create_ontology( {uri:prefix} )
+                self.log.debug("Inserting ttl abstraction for {}.".format(uri))
+                o_tim.store_ttl( o_onto.abstraction() )
+                o_tim.insert_metadata(url)
+    # integrate_endpoint_ext
 
     @view_config(route_name='delete_endpoints', request_method='POST')
     def delete_endpoints(self):
@@ -451,7 +473,7 @@ class AskView(object):
         sqg = SparqlQueryGraph(self.settings, self.request.session)
         query_launcher = QueryLauncher(self.settings, self.request.session)
 
-        res = query_launcher.process_query(sqg.get_user_graph_infos_with_count().query)
+        res = query_launcher.process_query(sqg.get_user_graph_infos_with_count())
 
         named_graphs = []
 
@@ -557,7 +579,7 @@ class AskView(object):
             sqg = SparqlQueryGraph(self.settings, self.request.session)
             ql = MultipleQueryLauncher(self.settings, self.request.session)
             em = EndpointManager(self.settings, self.request.session)
-            res = ql.process_query(sqg.get_all_taxons().query,em.list_endpoints())
+            res = ql.process_query(sqg.get_all_taxons(),em.list_endpoints())
             taxons_list = []
             for elem in res:
                 taxons_list.append(elem['taxon'])
@@ -666,6 +688,7 @@ class AskView(object):
             src_file.set_key_columns(key_columns)
 
             cont_ttl = '\n'.join(src_file.get_turtle(preview_only=True))
+            prefixes = sfc.o_prefixes.get_turtle_prefixes(cont_ttl)
             self.data = textwrap.dedent(
             """
             {header}
@@ -687,7 +710,7 @@ class AskView(object):
             ######################
 
             {domain_knowledge_ttl}
-            """).format(header=sfc.get_turtle_template(cont_ttl),
+            """).format(header=prefixes,
                     content_ttl = cont_ttl,
                     abstraction_ttl = src_file.get_abstraction(),
                     domain_knowledge_ttl = src_file.get_domain_knowledge()
@@ -722,14 +745,10 @@ class AskView(object):
         forced_type = None
         if 'forced_type' in body:
             forced_type = body['forced_type']
-        jobid = -1
 
         # Allow data integration in public graph only if user is an admin
         if public and not self.request.session['admin']:
             raise ValueError("Can not load public data with a non admin account !")
-
-        jm = JobManager(self.settings, self.request.session)
-        jobid = jm.save_integration_job(file_name)
 
         sfc = SourceFileConvertor(self.settings, self.request.session)
         src_file = sfc.get_source_files([file_name], forced_type, uri_set=uris)[0]
@@ -738,21 +757,7 @@ class AskView(object):
         src_file.set_disabled_columns(disabled_columns)
         src_file.set_key_columns(key_columns)
 
-        try:
-            self.data = src_file.persist(self.request.host_url, public)
-            jm.done_integration_job(jobid)
-        except Exception as e:
-            # rollback
-            sqb = SparqlQueryBuilder(self.settings, self.request.session)
-            query_laucher = QueryLauncher(self.settings, self.request.session)
-            query_laucher.process_query(sqb.get_drop_named_graph(src_file.graph).query)
-            query_laucher.process_query(sqb.get_delete_metadatas_of_graph(src_file.graph).query)
-
-            traceback.print_exc(file=sys.stdout)
-            if jobid != -1:
-                jm.set_error_message('integration', str(e), jobid)
-
-        return self.data
+        return src_file.persist(self.request.host_url, public)
 
     @view_config(route_name='load_remote_data_into_graph', request_method='POST')
     def load_remote_data_into_graph(self):
@@ -763,9 +768,6 @@ class AskView(object):
         self.checkAuthSession()
 
         body = self.request.json_body
-        graph = None
-        jobid = -1
-
         public = None
 
         if 'public' in body:
@@ -783,32 +785,8 @@ class AskView(object):
         if public and not self.request.session['admin']:
             raise ValueError("Can not import public data with a non admin account !")
 
-        jm = JobManager(self.settings, self.request.session)
-        jobid = jm.save_integration_job(url)
-
         src_file = SourceFileURL(self.settings, self.request.session, url)
-        graph = src_file.graph
-
-        try:
-            self.data = src_file.load_data_from_url(url, public)
-            jm.done_integration_job(jobid)
-        except Exception as e:
-            # rollback
-            sqb = SparqlQueryBuilder(self.settings, self.request.session)
-            query_laucher = QueryLauncher(self.settings, self.request.session)
-
-            if graph is not None:
-                query_laucher.process_query(sqb.get_drop_named_graph(src_file.graph).query)
-                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(src_file.graph).query)
-
-            traceback.print_exc(file=sys.stdout)
-
-            if jobid != -1:
-                jm.set_error_message('integration', str(e), jobid)
-
-            self.request.response.status = 400
-
-        return self.data
+        return src_file.persist(url, public)
 
     @view_config(route_name='load_gff_into_graph', request_method='POST')
     def load_gff_into_graph(self):
@@ -819,8 +797,6 @@ class AskView(object):
         self.checkAuthSession()
 
         self.log.debug("== load_gff_into_graph ==")
-
-        jobid = -1
 
         body = self.request.json_body
         file_name = body['file_name']
@@ -839,34 +815,12 @@ class AskView(object):
         if public and not self.request.session['admin']:
             raise ValueError("Cannot import public gff with a non admin account !")
 
-        jm = JobManager(self.settings, self.request.session)
-        jobid = jm.save_integration_job(file_name)
         sfc = SourceFileConvertor(self.settings, self.request.session)
         src_file_gff = sfc.get_source_files([file_name], forced_type, uri_set={0: uri})[0]
-        graph = src_file_gff.graph
         src_file_gff.set_taxon(taxon)
         src_file_gff.set_entities(entities)
 
-        try:
-            self.log.debug('--> Parsing GFF')
-            src_file_gff.persist(self.request.host_url, public)
-            jm.done_integration_job(jobid)
-        except Exception as e:
-            # rollback
-            if graph is not None:
-                sqb = SparqlQueryBuilder(self.settings, self.request.session)
-                query_laucher = QueryLauncher(self.settings, self.request.session)
-                query_laucher.process_query(sqb.get_drop_named_graph(graph).query)
-                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(graph).query)
-
-            traceback.print_exc(file=sys.stdout)
-
-            if jobid != -1:
-                jm.set_error_message('integration', str(e), jobid)
-            self.log.error(str(e))
-
-        self.data['status'] = 'ok'
-        return self.data
+        return src_file_gff.persist(self.request.host_url, public)
 
     @view_config(route_name='load_ttl_into_graph', request_method='POST')
     def load_ttl_into_graph(self):
@@ -877,8 +831,6 @@ class AskView(object):
         self.checkAuthSession()
 
         self.log.debug('*** load_ttl_into_graph ***')
-
-        jobid = -1
 
         body = self.request.json_body
         file_name = body['file_name']
@@ -891,29 +843,10 @@ class AskView(object):
         if public and not self.request.session['admin']:
             raise ValueError("Can not import public turtle file with a non admin account !")
 
-        jm = JobManager(self.settings, self.request.session)
-        jobid = jm.save_integration_job(file_name)
         sfc = SourceFileConvertor(self.settings, self.request.session)
         src_file_ttl = sfc.get_source_files([file_name], forced_type)[0]
-        graph = src_file_ttl.graph
 
-        try:
-            self.data = src_file_ttl.persist(self.request.host_url, public)
-            jm.done_integration_job(jobid)
-        except Exception as e:
-            # rollback
-            if graph is not None:
-                sqb = SparqlQueryBuilder(self.settings, self.request.session)
-                query_laucher = QueryLauncher(self.settings, self.request.session)
-                query_laucher.process_query(sqb.get_drop_named_graph(graph).query)
-                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(graph).query)
-
-            if jobid != -1:
-                jm.set_error_message('integration', str(e), jobid)
-            self.log.error('ERROR: ' + str(e))
-
-        self.data['status'] = 'ok'
-        return self.data
+        return src_file_ttl.persist(self.request.host_url, public)
 
     @view_config(route_name='load_bed_into_graph', request_method='POST')
     def load_bed_into_graph(self):
@@ -925,10 +858,8 @@ class AskView(object):
 
         body = self.request.json_body
 
-        jobid = -1
-
         file_name = body['file_name']
-        taxon = body['taxon']
+        taxon  = body['taxon']
         entity = body['entity_name']
         public = body['public']
         uri = None
@@ -949,29 +880,7 @@ class AskView(object):
         src_file_bed.set_taxon(taxon)
         src_file_bed.set_entity_name(entity)
 
-        graph = src_file_bed.graph
-        jm = JobManager(self.settings, self.request.session)
-        jobid = jm.save_integration_job(file_name)
-        try:
-            self.log.debug('--> Parsing BED')
-            src_file_bed.persist(self.request.host_url, public)
-            jm.done_integration_job(jobid)
-        except Exception as e:
-            # rollback
-            if graph is not None:
-                sqb = SparqlQueryBuilder(self.settings, self.request.session)
-                query_laucher = QueryLauncher(self.settings, self.request.session)
-                query_laucher.process_query(sqb.get_drop_named_graph(graph).query)
-                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(graph).query)
-
-            traceback.print_exc(file=sys.stdout)
-            if jobid != -1:
-                jm.set_error_message('integration', str(e), jobid)
-
-            self.log.error(str(e))
-
-        self.data['status'] = 'ok'
-        return self.data
+        return src_file_bed.persist(self.request.host_url, public)
 
     @view_config(route_name='getUserAbstraction', request_method='POST')
     def getUserAbstraction(self):
@@ -998,11 +907,11 @@ class AskView(object):
         body = self.request.json_body
         sqb = SparqlQueryBuilder(self.settings, self.request.session)
         ql = QueryLauncher(self.settings, self.request.session)
-        sparqlHeader = sqb.header_sparql_config("")
+        query = sqb.add_prefix_headers(body["prefix"])
 
         try:
-            sparqlHeader += body["prefix"]+"\n"
-            ql.insert_data(body["shortcut_def"],'askomics:graph:shortcut',sparqlHeader);
+            query += "\n"
+            ql.insert_data(body["shortcut_def"],'askomics:graph:shortcut',query);
         except Exception as e:
             #exc_type, exc_value, exc_traceback = sys.exc_info()
             #traceback.print_exc(limit=8)
@@ -1027,9 +936,7 @@ class AskView(object):
         ql = QueryLauncher(self.settings, self.request.session)
 
         try:
-            query_string = sqb.header_sparql_config("")
-            query_string += "\n"
-            query_string += "DELETE {\n"
+            query_string  = "DELETE {\n"
             query_string += "\tGRAPH "+ "<askomics:graph:shortcut>" +"\n"
             query_string += "\t\t{\n"
             query_string += "<"+body["shortcut"]+">" + " ?r ?a.\n"
@@ -1038,8 +945,8 @@ class AskView(object):
             query_string += "WHERE{\n"
             query_string += "<"+body["shortcut"]+">" + " ?r ?a.\n"
             query_string += "\t}\n"
-
-            res = ql.process_query(query_string)
+            query = sqb.add_prefix_headers(query_string)
+            res = ql.process_query(query)
         except Exception as e:
             #exc_type, exc_value, exc_traceback = sys.exc_info()
             #traceback.print_exc(limit=8)
@@ -1179,11 +1086,16 @@ class AskView(object):
 
     @view_config(route_name='ttl', request_method='GET')
     def uploadTtl(self):
-        pm = ParamManager(self.settings, self.request.session)
-        response = FileResponse(
-            pm.get_rdf_user_directory()+self.request.matchdict['name'],
-            content_type='text/turtle'
-            )
+        param_manager = ParamManager(self.settings, self.request.session)
+
+        splited = os.path.split(self.request.matchdict['name'])
+        username = splited[0]
+        filename = splited[1]
+        rdf_path = param_manager.get_directory('rdf', force_username=username)
+
+        path_url = rdf_path + filename
+
+        response = FileResponse(path_url, content_type='text/turtle')
         return response
 
     @view_config(route_name='csv', request_method='GET')
@@ -1295,7 +1207,7 @@ class AskView(object):
         try:
 
             self.data['count'] =  0
-            res = ql.process_query(sqa.get_number_of_users().query)
+            res = ql.process_query(sqa.get_number_of_users())
             if len(res)>0 and 'count' in res[0]:
                 self.data['count'] = res[0]['count']
 
@@ -1416,7 +1328,7 @@ class AskView(object):
 
         try:
             security.add_apikey(keyname)
-            # query_laucher.process_query(sqa.add_apikey(username, keyname).query)
+            # query_laucher.process_query(sqa.add_apikey(username, keyname))
         except Exception as e:
             self.log.debug(str(e))
             self.data['error'] = str(e)
@@ -1673,7 +1585,7 @@ class AskView(object):
         query_laucher = QueryLauncher(self.settings, self.request.session)
 
         # Get all graph of a user
-        res = query_laucher.process_query(sqb.get_graph_of_user(username).query)
+        res = query_laucher.process_query(sqb.get_graph_of_user(username))
 
         list_graph = []
         for graph in res:
@@ -1682,8 +1594,8 @@ class AskView(object):
         # Drop all this graph
         for graph in list_graph:
             try:
-                query_laucher.process_query(sqb.get_drop_named_graph(graph).query)
-                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(graph).query)
+                query_laucher.process_query(sqb.get_drop_named_graph(graph))
+                query_laucher.process_query(sqb.get_delete_metadatas_of_graph(graph))
             except Exception as e:
                 self.data['error'] = str(e)
                 self.log.error(str(e))

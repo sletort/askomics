@@ -29,6 +29,7 @@ class SourceFileTsvTests(unittest.TestCase):
         SetupTests(self.settings, self.request.session)
 
 
+    @unittest.skip("source_file has no longer a graph attribute.")
     def test_setGraph(self):
         source_file = SourceFileTsv(self.settings, self.request.session, self.request.session['upload_directory'] + '/instruments.tsv',preview_limit=1)
         source_file.setGraph("hello:world")
@@ -56,3 +57,8 @@ class SourceFileTsvTests(unittest.TestCase):
         assert SourceFileTsv.get_strand_faldo(None) == "faldo:BothStrandPosition"
         assert SourceFileTsv.get_strand_faldo("+") == "faldo:ForwardStrandPosition"
         assert SourceFileTsv.get_strand_faldo("-") == "faldo:ReverseStrandPosition"
+
+
+# ===========================
+if __name__ == '__main__':
+    unittest.main()

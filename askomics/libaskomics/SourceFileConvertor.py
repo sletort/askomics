@@ -8,6 +8,8 @@ from askomics.libaskomics.source_file.SourceFileTsv import SourceFileTsv
 from askomics.libaskomics.source_file.SourceFileTtl import SourceFileTtl
 from askomics.libaskomics.source_file.SourceFileBed import SourceFileBed
 
+from askomics.libaskomics.AskomicsPrefixes import AskomicsPrefixes
+
 class SourceFileConvertor(ParamManager):
     """
     A SourceFileConvertor instance provides methods to:
@@ -25,6 +27,11 @@ class SourceFileConvertor(ParamManager):
 
         self.manage_rdf_format = ['application/rdf+xml','owl','rdf','n3','nt','json-ld']
         self.log = logging.getLogger(__name__)
+        self.__o_prefixes = AskomicsPrefixes(settings)
+
+    @property
+    def o_prefixes(self):
+        return self.__o_prefixes
 
     def get_source_files(self, selectedFiles, forced_type=None, uri_set=None):
         """Get all source files

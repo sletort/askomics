@@ -10,6 +10,8 @@ import tempfile
 import logging
 import urllib.parse
 
+from askomics.libaskomics.AskomicsPrefixes import AskomicsPrefixes
+
 class ParamManager(object):
     """
         Manage static file and template sparql queries
@@ -20,19 +22,7 @@ class ParamManager(object):
         self.settings = settings
         self.session = session
 
-        self.ASKOMICS_prefix = {
-            "": self.get_param("askomics.prefix"),
-            "askomics": self.get_param("askomics.namespace"),
-            "xsd": """http://www.w3.org/2001/XMLSchema#""",
-            "rdfs": """http://www.w3.org/2000/01/rdf-schema#""",
-            "rdf": """http://www.w3.org/1999/02/22-rdf-syntax-ns#""",
-            "rdfg": """http://www.w3.org/2004/03/trix/rdfg-1/""",
-            "owl": """http://www.w3.org/2002/07/owl#""",
-            "prov": """http://www.w3.org/ns/prov#""",
-            "dc": """http://purl.org/dc/elements/1.1/""",
-            "foaf": """http://xmlns.com/foaf/0.1/""",
-            "faldo": """http://biohackathon.org/resource/faldo#"""
-        }
+        self.__o_prefixes = AskomicsPrefixes(settings)
 
         self.user_dir = self.get_param('askomics.files_dir') + '/'
 
@@ -52,13 +42,18 @@ class ParamManager(object):
             'date': lambda str,str2: json.dumps(str)
             }
 
-    def get_directory(self, name):
+    def get_directory(self, name, force_username=None):
         """Get a named directory of a user, create it if not exist"""
 
-        if 'username' not in self.session:
-            mdir = self.user_dir + '_guest/' + name + '/'
+        if force_username:
+            username = force_username
+        elif 'username' in self.session:
+            username = self.session['username']
         else:
-            mdir = self.user_dir + self.session['username'] + '/' + name + '/'
+            username = '_guest'
+
+        mdir = self.user_dir + username + '/' + name + '/'
+
         if not os.path.isdir(mdir):
             os.makedirs(mdir)
 
@@ -102,114 +97,6 @@ class ParamManager(object):
 
     def is_defined(self, key):
         return key in self.settings.keys()
-
-    def __update_askomics_prefixes(self,l_prefixes):
-        """removes duplicates,
-            if the prefix is public, add it to ASKOMICS_prefix
-            else log it."""
-        self.log.debug("update_prefixes")
-        l_prefixes = list(set(l_prefixes)) # remove duplicates
-
-        url = "http://prefix.cc/"
-        ext = ".file.json"
-
-        for prefix in l_prefixes:
-            if not prefix in self.ASKOMICS_prefix:
-                # check that prefix correspond to public ontology
-                prefix_url = url + prefix + ext
-                response = requests.get(prefix_url)
-                if response.status_code != 200:
-                    self.log.error("request:"+str(prefix_url))
-                    self.log.error("status_code:"+str(response.status_code))
-                    self.log.error(response)
-                    continue
-                dic = json.loads(response.text)
-                self.ASKOMICS_prefix[prefix]=dic[prefix]
-                msg = "add prefix:" + str(prefix) + ":" + self.ASKOMICS_prefix[prefix]
-                self.log.info(msg)
-    # __update_askomics_prefixes
-
-    def get_turtle_prefixes(self,ttl):
-        """Parse the ttl string, looking for prefix.
-            add them to ASKOMICS_prefix if they exist.
-            Then return the prefixes as ttl header."""
-
-        #add new prefix if needed
-        if ttl == None:
-            raise ValueError("Turtle is empty.")
-
-        regex = re.compile('\s(\w+):')
-        l_prefixes = regex.findall(ttl)
-        self.__update_askomics_prefixes(l_prefixes)
-
-        header = ["@prefix {0}: <{1}> .".format(k,v) for k,v in self.ASKOMICS_prefix.items() ]
-
-        asko_prefix = self.get_param("askomics.prefix")
-        header.append("@base <{0}> .".format(asko_prefix))
-        header.append("<{0}> rdf:type owl:Ontology .".format(asko_prefix))
-        return '\n'.join(header)
-
-    def reverse_prefix(self,uri):
-        url = "http://prefix.cc/reverse?format=json&uri="
-
-        for prefix in self.ASKOMICS_prefix:
-            if uri.startswith(self.ASKOMICS_prefix[prefix]):
-                return prefix
-
-        response = requests.get(url+uri)
-        if response.status_code != 200:
-            self.log.error("request:"+str(url+uri))
-            self.log.error("status_code:"+str(response.status_code))
-            self.log.error(response)
-            self.ASKOMICS_prefix[uri]=uri
-            return ""
-
-        dic = json.loads(response.text)
-        if (len(dic)>0):
-            v = list(dic.values())[0]
-            k = list(dic.keys())[0]
-            self.ASKOMICS_prefix[k]=v
-            self.log.info("add prefix:"+str(k)+":"+self.ASKOMICS_prefix[k])
-            return k
-
-        return uri
-
-    def get_sparql_prefixes(self,sparqlrequest):
-        # SLETORT: should be almost identical to get_turtle_prefixes,
-        # SLETORT:   and also elsewhere (but this one is used by more classes)
-        # SLETORT: why returning all askomics prefixes ? we only need those from the request.
-        header = ""
-        regex = re.compile('\s(\w+):')
-        listTermPref = regex.findall(sparqlrequest)
-        self.__update_askomics_prefixes(listTermPref)
-
-        for key, value in self.ASKOMICS_prefix.items():
-            header += "PREFIX "+key+": <"+value+">\n"
-
-        return header
-
-    def header_sparql_config(self,sparqlrequest):
-        # SLETORT: should be almost identical to get_turtle_prefixes,
-        # SLETORT:   and also elsewhere (but this one is used by more classes)
-        self.log.warn( "deprecated, use get_sparql_prefixes" )
-        header = ""
-        regex = re.compile('\s(\w+):')
-        listTermPref = regex.findall(sparqlrequest)
-        self.__update_askomics_prefixes(listTermPref)
-
-        for key, value in self.ASKOMICS_prefix.items():
-            header += "PREFIX "+key+": <"+value+">\n"
-
-        return header
-
-    def remove_prefix(self, obj):
-        for key, value in self.ASKOMICS_prefix.items():
-            new = key
-            if new:
-                new += ":" # if empty prefix, no need for a :
-            obj = obj.replace(value, new)
-
-        return obj
 
     @staticmethod
     def encode(toencode):

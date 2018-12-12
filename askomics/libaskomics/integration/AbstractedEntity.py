@@ -31,16 +31,20 @@ class AbstractedEntity__( object ):
         return the turtle code describing an AbstractedEntity
         for the abstraction file generation.
         """
+        # Note: we cannot ends the string with '; .'
+        #   This is SPARQL compliant, but virtuoso use SPARQL-BI, which do not tolerate this
         turtle = self._uri + "\n"
 
-        turtle += (len(self._uri) + 1) * " " + "askomics:entity \"true\"^^xsd:boolean ;\n"
-        turtle += (len(self._uri) + 1) * " " + "rdfs:label " + json.dumps(self._label) + "^^xsd:string ;\n"
+        indent = (len(self._uri) + 1) * " "
+        l_prop = []
+        l_prop.append(indent + "askomics:entity \"true\"^^xsd:boolean")
+        l_prop.append(indent + "rdfs:label " + json.dumps(self._label) + "^^xsd:string")
         if self.__startpoint:
-            turtle += (len(self._uri) + 1) * " " + "askomics:startPoint \"true\"^^xsd:boolean ;\n"
-        turtle += '.\n\n'
+            l_prop.append(indent + "askomics:startPoint \"true\"^^xsd:boolean")
+        turtle += " ;\n".join(l_prop) + ".\n\n"
 
         return turtle
-
+	
 class AbstractedEntity( AbstractedEntity__ ):
     """
     An AbstractedEntity represents the classes of the database.
@@ -50,4 +54,4 @@ class AbstractedEntity( AbstractedEntity__ ):
     def __init__(self, identifier,prefix):
         uri = ParamManager.encode_to_rdf_uri(identifier,prefix)
         label = identifier
-        __AbstractedEntity.__init__( uri, label )
+        super().__init__( uri, label )

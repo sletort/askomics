@@ -19,7 +19,7 @@ class AbstractedRelation__( object ):
         - an attribute of a node (relation_type = category).
     All DatatypeProperty are represented as nodes attributes.
     Each relation has an uri composed by the database prefix (:), "has_"
-    and an ?
+    and an 
     Each relation also has a domain (the class of the source node) and a
     range (the class of the target).
 
@@ -45,14 +45,15 @@ class AbstractedRelation__( object ):
         for the abstraction file generation.
         """
         indent = (len(self._uri)) * " "
-
-        turtle = self._uri + " rdf:type "  + self.__type   + " ;\n"
-        turtle += (len(self._uri) + 1) * " " + "askomics:attribute \"true\"^^xsd:boolean ;\n"
+        l_prop = []
+        l_prop.append(self._uri + " rdf:type "  + self.__type)
+        l_prop.append(indent + "askomics:attribute \"true\"^^xsd:boolean" )
         # json.dumps manage quotes - is this the best way ? doesn't ( \" + label + \" ) sufficient ?
-        turtle += indent + ' rdfs:label ' + json.dumps( self.__label ) + '^^xsd:string ;\n'
-        turtle += indent + " rdfs:domain " + self.__domain + " ;\n"
-        turtle += indent + " rdfs:range "  + self.__range  + " ;\n"
-        turtle += ".\n"
+        l_prop.append(indent + ' rdfs:label ' + json.dumps( self.__label ) + '^^xsd:string')
+        l_prop.append(indent + " rdfs:domain " + self.__domain)
+        l_prop.append(indent + " rdfs:range "  + self.__range)
+
+        turtle = " ;\n".join(l_prop)+".\n\n"
 
         return turtle
 
@@ -90,5 +91,5 @@ class AbstractedRelation( AbstractedRelation__ ):
 
         rdfs_domain = ParamManager.encode_to_rdf_uri(rdfs_domain,prefixDomain)
 
-        __AbstractedRelation.__init__( uridi, _type, rdfs_domain, rdfs_range, label )
+        super().__init__( uridi, _type, rdfs_domain, rdfs_range, label )
         self.log = logging.getLogger(__name__)
