@@ -28,12 +28,7 @@ class TripleStoreExplorer(ParamManager):
 
     def __init__(self, settings, session, dico={}):
         ParamManager.__init__(self, settings, session)
-
         self.log = logging.getLogger(__name__)
-        #DBG
-        fh = logging.FileHandler('/root/tse.log')
-        self.log.addHandler(fh)
-        #/DBG
 
     def get_start_points(self):
         """
