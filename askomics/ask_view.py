@@ -118,11 +118,6 @@ class AskView(object):
 
             tse = TripleStoreExplorer(self.settings, self.request.session)
             nodes = tse.get_start_points()
-            #DBG
-            fh = logging.FileHandler('/root/ask_view.log')
-            self.log.addHandler(fh)
-            self.log.debug( nodes )
-            #/DBG
 
             self.data['nodes'] = {}
 
