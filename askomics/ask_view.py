@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import os,sys,traceback
 import re,shutil
@@ -153,7 +152,7 @@ class AskView(object):
         self.data['username'] = self.request.session['username']
 
         sqs = SparqlQueryStats(self.settings, self.request.session)
-        qlaucher = QueryLauncher(self.settings, self.request.session)
+        qlaucher  = QueryLauncher(self.settings, self.request.session)
         qmlaucher = MultipleQueryLauncher(self.settings, self.request.session)
         em = EndpointManager(self.settings, self.request.session)
 
@@ -162,14 +161,14 @@ class AskView(object):
 
         lEndp = em.list_endpoints()
         # Number of triples
-        results_pub = qmlaucher.process_query(sqs.get_number_of_triples('public'),lEndp)
+        results_pub  = qmlaucher.process_query(sqs.get_number_of_triples('public'),lEndp)
         results_priv = qlaucher.process_query(sqs.get_number_of_triples('private'))
 
         public_stats['ntriples'] = results_pub[0]['number']
         private_stats['ntriples'] = results_priv[0]['number']
 
         # Number of entities
-        results_pub = qmlaucher.process_query(sqs.get_number_of_entities('public'),lEndp)
+        results_pub  = qmlaucher.process_query(sqs.get_number_of_entities('public'),lEndp)
         results_priv = qlaucher.process_query(sqs.get_number_of_entities('private'))
 
         public_stats['nentities'] = results_pub[0]['number']
@@ -371,8 +370,6 @@ class AskView(object):
         for epx_name in d_endpoints:
             # EPx - save in DB
             url = d_endpoints[epx_name]['uri']
-            em  = EndpointManager(self.settings, self.request.session)
-            em.save_endpoint(epx_name,url,isenable=True)
             o_epx = ExternalEndpoint(self.settings, self.request.session, url)
             self.log.debug("External endpoint <{}> has been recorded".format(url))
 
