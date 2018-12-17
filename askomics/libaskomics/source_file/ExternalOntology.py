@@ -22,7 +22,8 @@ class ExternalEndpoint(ParamManager):
     """
     def __init__(self, d_settings, d_session, ep_uri ):
         super().__init__(d_settings, d_session)
-        self.log = logging.getLogger(__name__)
+        self.log   = logging.getLogger(__name__)
+        self.__uri = ep_uri
 
         self.__o_launcher = QueryLauncher( d_settings, d_session, endpoint=ep_uri )
         #SLETORT: TODO self._o_launcher.test_endpoint() ?
@@ -30,6 +31,9 @@ class ExternalEndpoint(ParamManager):
     @property
     def o_launcher( self ):
         return self.__o_launcher
+    @property
+    def uri( self ):
+        return self.__uri
 
     def create_ontology(self, d_onto):
         """Create an ExternalOntology object.
@@ -99,6 +103,7 @@ class ExternalOntology(Abstractor):
         return self.__o_sqb
 
     def __ttl_entity(self, entity=""):
+        # for the moment always use with entity empty !
         if "" != self._prefix:
             return self._prefix + ":" + entity
 
@@ -106,6 +111,8 @@ class ExternalOntology(Abstractor):
 
     def abstraction(self):
         # maybe later something more precise
+        ttl_service = self.__service()
+
         ttl_entities = self.__ask_entities()
         self.log.debug( 'entities : {}'.format(ttl_entities) )
         ttl_object_prop = self.__ask_attributes( 'owl:ObjectProperty' )
@@ -113,9 +120,19 @@ class ExternalOntology(Abstractor):
         ttl_dt_prop = self.__ask_attributes( 'owl:DatatypeProperty' )
         self.log.debug( 'DP : {}'.format(ttl_dt_prop) )
 
-        l_ttl = [ ttl_entities,
+        l_ttl = [ ttl_service, ttl_entities,
                   ttl_object_prop, ttl_dt_prop ]
         return l_ttl
+
+    def __service(self):
+        return """
+            [] a sd:Service ;
+                sd:endpoint <{}> ;
+                sd:supportedLanguage sd:SPARQL11Query .
+#                sd:defaultDataset [
+#                    a sd:Dataset ;
+#                    ].
+            """.format(self._o_ep.uri)
 
     def __ask_entities(self):
         query = """
