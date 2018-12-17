@@ -371,6 +371,7 @@ class AskView(object):
             # EPx - save in DB
             url = d_endpoints[epx_name]['uri']
             o_epx = ExternalEndpoint(self.settings, self.request.session, url)
+            o_tim.store_ttl( o_epx.abstraction() )
             self.log.debug("External endpoint <{}> has been recorded".format(url))
 
             # Ontologies - store prefix and create/save abstraction in triple store

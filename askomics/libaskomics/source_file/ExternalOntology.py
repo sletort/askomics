@@ -13,7 +13,7 @@ from askomics.libaskomics.integration.AbstractedRelation import AbstractedRelati
 from askomics.libaskomics.rdfdb.QueryLauncher import QueryLauncher
 from askomics.libaskomics.rdfdb.SparqlQueryBuilder import SparqlQueryBuilder
 
-class ExternalEndpoint(ParamManager):
+class ExternalEndpoint(Abstractor):
     """
     Class representing an external Endpoint.
 
@@ -32,7 +32,7 @@ class ExternalEndpoint(ParamManager):
     def o_launcher( self ):
         return self.__o_launcher
     @property
-    def uri( self ):
+    def _uri( self ):
         return self.__uri
 
     def create_ontology(self, d_onto):
@@ -63,6 +63,21 @@ class ExternalEndpoint(ParamManager):
 
         # will return a list of dict
         return self.o_launcher.process_query( query )
+
+    def abstraction(self):
+        # maybe later something more precise
+        ttl_service = self.__service()
+        return [ ttl_service ]
+
+    def __service(self):
+        return """
+            [] a sd:Service ;
+                sd:endpoint <{}> ;
+                sd:supportedLanguage sd:SPARQL11Query .
+#                sd:defaultDataset [
+#                    a sd:Dataset ;
+#                    ].
+            """.format(self._uri)
 
 
 class ExternalOntology(Abstractor):
@@ -111,8 +126,6 @@ class ExternalOntology(Abstractor):
 
     def abstraction(self):
         # maybe later something more precise
-        ttl_service = self.__service()
-
         ttl_entities = self.__ask_entities()
         self.log.debug( 'entities : {}'.format(ttl_entities) )
         ttl_object_prop = self.__ask_attributes( 'owl:ObjectProperty' )
@@ -120,19 +133,9 @@ class ExternalOntology(Abstractor):
         ttl_dt_prop = self.__ask_attributes( 'owl:DatatypeProperty' )
         self.log.debug( 'DP : {}'.format(ttl_dt_prop) )
 
-        l_ttl = [ ttl_service, ttl_entities,
+        l_ttl = [ ttl_entities,
                   ttl_object_prop, ttl_dt_prop ]
         return l_ttl
-
-    def __service(self):
-        return """
-            [] a sd:Service ;
-                sd:endpoint <{}> ;
-                sd:supportedLanguage sd:SPARQL11Query .
-#                sd:defaultDataset [
-#                    a sd:Dataset ;
-#                    ].
-            """.format(self._o_ep.uri)
 
     def __ask_entities(self):
         query = """
