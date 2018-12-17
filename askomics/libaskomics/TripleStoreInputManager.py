@@ -145,6 +145,12 @@ class TripleStoreInputManager(ParamManager):
         return total_triple_count
     #store_ttl
 
+    def _store_ttl_chunk(self, ttl_chunk, chunk_num):
+        """store a ttl string, part of a bigger set.
+            """
+        # Xavier thought it could be possible to always use the insert_data method (cf NotLoad)
+        raise NotImplementedError("_store_ttl_chunk should be defined in subclasses.")
+
     def store_ttl_file(self, fp):
         """Shortcut to store a complete file.
 
@@ -215,7 +221,7 @@ class Load(TripleStoreInputManager):
         return self.__urlbase
 
     def _store_ttl_chunk( self, ttl_chunk, chunk_count ):
-        """"""
+        """ X """
         fp = tempfile.NamedTemporaryFile(
                                 dir=self.get_rdf_user_directory(),
                                 prefix="tmp_"+self._src,
@@ -264,6 +270,8 @@ class Load(TripleStoreInputManager):
             raise e
 
         finally:
+            # SLETORT: I think it should the method that generate the file that has to delete it.
+            #	I didn't do it myself because of the try/except thing (which i don't like it here either)
             os.remove(fp.name) # Everything ok, remove temp file
 
         return { "status": "ok" }
