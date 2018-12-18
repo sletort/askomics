@@ -52,7 +52,6 @@ class ExternalEndpoint(Abstractor):
               ?ont a owl:Ontology .
             ?uri a ?owl .
             ?uri rdfs:isDefinedBy ?ont .
-            ?uri rdfs:label  ?label .
               FILTER ( ?owl = owl:ObjectProperty || ?owl = owl:DatatypeProperty || ?owl = owl:Class ) .
             }
             GROUP BY ?ont ?owl
@@ -143,7 +142,7 @@ class ExternalOntology(Abstractor):
         WHERE {{
             ?uri a owl:Class .
             ?uri rdfs:isDefinedBy {0} .
-            ?uri rdfs:label ?label .
+            OPTIONAL {{ ?uri rdfs:label ?label }}
         }}""".format( self.__ttl_entity() )
         query  = self._o_query_builder.add_prefix_headers(query)
 
@@ -153,7 +152,7 @@ class ExternalOntology(Abstractor):
         ttl = ''
         for d_res in self._o_ep.o_launcher.process_query( query ):
             uri   = '<' + d_res['uri'] + '>'
-            label = d_res[ 'label' ]
+            label = d_res.get('label', d_res['uri'])
             ttl  += AbstractedEntity__( uri, label, startpoint=True ).get_turtle()
 
         return ttl
@@ -165,9 +164,9 @@ class ExternalOntology(Abstractor):
         WHERE {{
             ?uri a {1} .
             ?uri rdfs:isDefinedBy {0} .
-            ?uri rdfs:label  ?label .
             ?uri rdfs:domain ?domain .
             ?uri rdfs:range  ?range .
+            OPTIONAL {{ ?uri rdfs:label  ?label }}
         }}
         """.format(self.__ttl_entity(), rdf_type)
         query  = self._o_query_builder.add_prefix_headers(query)
@@ -177,7 +176,7 @@ class ExternalOntology(Abstractor):
         ttl = ''
         for d_res in self._o_ep.o_launcher.process_query( query ):
             uri   = '<' + d_res['uri'] + '>'
-            label = d_res[ 'label' ]
+            label = d_res.get('label', d_res['uri'])
             domain = '<' + d_res['domain'] + '>'
             range_ = '<' + d_res['range'] + '>'
             ttl  += AbstractedRelation__( uri, rdf_type, domain, range_, label ).get_turtle()
