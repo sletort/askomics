@@ -220,7 +220,7 @@ class SourceFileBed(SourceFile):
             indent = len(entity) * ' ' + ' '
             ttl += indent + 'rdfs:label \"' + self.decode_to_rdf_uri(entity) + "\"^^xsd:string ;\n"
             ttl += indent + 'askomics:startPoint \"true\"^^xsd:boolean ;\n\n'
-            ttl += indent + 'askomics:entity \"true\"^^xsd:boolean .\n\n'
+            ttl += indent + 'a askomics:entity .\n\n'
 
             ttl += '\n'
             ttl += indent + 'rdfs:label rdfs:domain '+entity+' .\n'

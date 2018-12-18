@@ -341,7 +341,7 @@ class SourceFileGff(SourceFile):
             indent = len(entity) * ' ' + ' '
             ttl += indent + 'rdfs:label \"' + self.decode_to_rdf_uri(entity,prefix=self.prefix) + "\"^^xsd:string ;\n"
             ttl += indent + 'askomics:startPoint \"true\"^^xsd:boolean ;\n'
-            ttl += indent + 'askomics:entity \"true\"^^xsd:boolean .\n\n'
+            ttl += indent + 'a askomics:entity .\n\n'
 
             ttl += '\n'
             ttl += indent + 'rdfs:label rdfs:domain '+entity+' .\n'
