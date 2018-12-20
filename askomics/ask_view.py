@@ -108,7 +108,7 @@ class AskView(object):
     @view_config(route_name='start_point', request_method='GET')
     def start_points(self):
         """ Get the nodes being query starters """
-        self.log.debug("== START POINT ==")
+        self.log.debug("== getting START POINT ==")
 
         try:
 
@@ -122,15 +122,18 @@ class AskView(object):
 
             for node in nodes:
                 if node['uri'] in self.data['nodes'].keys():
-                    if node['public'] and not self.data['nodes'][node['uri']]['public']:
-                        self.data['nodes'][node['uri']]['public'] = True
-                    if node['private'] and not self.data['nodes'][node['uri']]['private']:
-                        self.data['nodes'][node['uri']]['private'] = True
-                    self.data['nodes'][node['uri']]['public_and_private'] = bool(
-                        self.data['nodes'][node['uri']]['public'] and
-                        self.data['nodes'][node['uri']]['private'])
+                    d_node = self.data['nodes'][node['uri']] # to ease reading
+                    if node['public'] and not d_node['public']:
+                        d_node['public'] = True
+                    if node['private'] and not d_node['private']:
+                        d_node['private'] = True
+                    d_node['public_and_private'] = bool(
+                        d_node['public'] and
+                        d_node['private'])
                 else:
                     self.data['nodes'][node['uri']] = node
+
+            self.log.debug("== {} START POINTs retrieved ==".format( len(self.data['nodes']) ))
 
         except Exception as e:
             self.request.response.status = 400
