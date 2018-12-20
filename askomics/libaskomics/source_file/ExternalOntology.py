@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 
 import logging
 
@@ -160,21 +159,57 @@ class ExternalOntology(Abstractor):
 
     def __ask_attributes( self, rdf_type ):
         query = """
-        SELECT ?uri ?label ?domain ?range
+        SELECT ?uri ?label ?domain ?range ?member
         WHERE {{
             ?uri a {1} .
             ?uri rdfs:isDefinedBy {0} .
-            ?uri rdfs:domain ?domain .
-            ?uri rdfs:range  ?range .
-            OPTIONAL {{ ?uri rdfs:label  ?label }}
+            OPTIONAL {{ ?uri rdfs:label  ?label }} .
+
+            # to expose the content of blank nodes = rdf:collection
+            ### DOMAIN
+            OPTIONAL {{
+              {{  ?uri rdfs:domain ?domain .  }}
+              UNION
+              {{
+                ?uri rdfs:domain/owl:unionOf/rdf:rest*/rdf:first ?domain .
+              }}
+              FILTER (! isBlank(?domain)) .
+            }}
+
+            ### RANGE
+            OPTIONAL {{
+              {{ ?uri rdfs:range ?range }}
+              UNION
+              {{ ?uri rdfs:range/owl:oneOf/rdf:rest*/rdf:first ?range }}
+              UNION
+              {{
+                ?uri rdfs:range/owl:oneOf/rdf:rest*/rdf:first ?rangeVal .
+                BIND (datatype(?rangeVal) as ?range) .
+              }}
+              FILTER (! isBlank(?range)) .
+            }}
+
         }}
         """.format(self.__ttl_entity(), rdf_type)
+        #removed from QUERY (because it was commented) It copy it here to keep a trace.
+        #    # probably useless as domains cannot be datatypes
+        #    #UNION
+        #    #{
+        #    #  ?rel rdfs:domain/owl:oneOf/(rdf:rest)*/rdf:first ?domainVal .
+        #    #  BIND (datatype(?domainVal) as ?domain) .
+        #    #}
+
         query  = self._o_query_builder.add_prefix_headers(query)
         self.log.debug( 'attribute Query:\n' + query )
 
 
         ttl = ''
         for d_res in self._o_ep.o_launcher.process_query( query ):
+            if self.__check_ability(d_res, 'range') is False \
+                or self.__check_ability(d_res, 'domain') is False:
+                continue
+
+            self.log.debug( "d_res = " + str( d_res ) )
             uri   = '<' + d_res['uri'] + '>'
             label = d_res.get('label', d_res['uri'])
             domain = '<' + d_res['domain'] + '>'
@@ -183,3 +218,11 @@ class ExternalOntology(Abstractor):
 
         return ttl
     # __ask_entities
+
+    def __check_ability(self, d_res, key):
+        if key not in d_res:
+            msg = "askomics doesn't manage this no-{} record.\n{}"
+            self.log.debug(msg.format( key, str(d_res) ))
+            return False
+        return True
+
