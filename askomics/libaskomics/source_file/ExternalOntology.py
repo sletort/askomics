@@ -208,6 +208,12 @@ class ExternalOntology(Abstractor):
             if self.__check_ability(d_res, 'range') is False \
                 or self.__check_ability(d_res, 'domain') is False:
                 continue
+            #FIX temp. for #186 : xsd:date management in uniprot
+            #	=> should be managed by the interface, not here.
+            if d_res['range'].endswith('XMLSchema#date') \
+                or d_res['range'].endswith('xsd:date'):
+                d_res['range'] += "Time"
+            #/FIX
 
             self.log.debug( "d_res = " + str( d_res ) )
             uri   = '<' + d_res['uri'] + '>'
