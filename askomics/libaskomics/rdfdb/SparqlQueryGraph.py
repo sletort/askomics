@@ -212,7 +212,8 @@ class SparqlQueryGraph(SparqlQueryBuilder):
         Get the relation of an entity
         """
         return self.build_query_on_the_fly({
-            'select': '?g ?d ?subject ?relation ?object',
+            #'select': '?g ?d ?subject ?relation ?object', # ?d hidden in prop ? This would be tricky
+            'select': '?g ?subject ?relation ?object',
             'query': 'GRAPH ?g { ?relation rdf:type ' + prop + ' ;\n' +
                      '\t          rdfs:domain ?subject ;\n' +
                      '\t          rdfs:range ?object .\n'+
@@ -226,7 +227,8 @@ class SparqlQueryGraph(SparqlQueryBuilder):
         Get the relation of an entity
         """
         return self.build_query_on_the_fly({
-            'select': '?g ?d ?subject ?relation ?object',
+            # 'select': '?g ?d ?subject ?relation ?object', # ?d hidden in prop ? This would be tricky
+            'select': '?g ?subject ?relation ?object',
             'query': 'GRAPH ?g { ?relation rdf:type ' + prop + ' ;\n' +
                      '\t          rdfs:domain ?subject ;\n' +
                      '\t          rdfs:range ?object .\n'+
